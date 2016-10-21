@@ -3,52 +3,69 @@ package main
 import (
   "fmt"
   "sync"
-  "runtime"
   "strings"
 )
 
 var initialString string
+initialBytes := []byte(initialString)
 var finalString string
 var stringLength int 
+var lettersProcessed int
+var applicationStatus bool
+var wg sync.WaitGroup
 
-func addToFinalStack(letterChannel chan string, wg *sync.WaitGroup) {
-  letter := <- letterChannel
-  finalString += letter
-  wg.Done()
+func getLetters(gQ chan string) {
+  for i := range initialBytes {
+  	gQ <- string(initialBytes[i])
+  }
 }
 
-func capitalize(letterChannel chan string, currentLetter string, wg *sync.WaitGroup) {
-  thisLetter := strings.ToUpper(currentLetter)
-  wg.Done()
-  letterChannel <- thisLetter	
+func capitalizeLetters(gQ chan string, sQ chan string) {
+  for {
+  	if lettersProcessed >= stringLength {
+  	  applicationStatus = false
+  	  break
+  	}
+  	select {
+  	  case letter := <- gQ
+  	    capitalLetter := strings.ToUpper(letter)
+  	    finalString += capitalLetter
+  	    lettersProcessed++
+  	}
+  }
 }
 
 func main() {
   
-  var wg sync.WaitGroup
-  
-  runtime.GOMAXPROCS(2)
-  
+  applicationStatus = true
+
+  getQueue := make(chan string)
+  stackQueue := make(chan string)
 
   initialString = `Four score and seven years ago our fathers
   brought forth on this continent, a new nation, conceived in
   Liberty, and dedicated to the proposition that all men are
   created equal.`
 
-  initialBytes := []byte(initialString)
-  var letterChannel chan string = make(chan string)
+  initialBytes = []byte(initialString)
+  stringLength = len(initialString)
+  lettersProcessed = 0
+
+  fmt.Println("start capitalizing...")
+
+  go getLetters(getQueue)
+  capitalizeLetters(getQueue, stackQueue)
+
+  close(getQueue)
+  close(stackQueue)
+
+  for {
+  	if applicationStatus == false {
+  		fmt.Println("Done")
+  		fmt.Println(finalString)
+  		break
+  	}
+  }
   
-  stringLength = len(initialBytes)
-
-  for i := 0; i < stringLength; i++ {
-  	wg.Add(2)
-
-  	go capitalize(letterChannel, string(initialBytes[i]), &wg)
-  	go addToFinalStack(letterChannel, &wg)
-
-  	wg.Wait()
-  } 
-
-  fmt.Println(finalString)
 
 }
