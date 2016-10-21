@@ -83,6 +83,22 @@ func grabFeed(feed *Feed, feedChain chan bool, osvg *svg.SVG) {
 	}
 }
 
+func channelHandler(feed *rss.Feed, newChannels []*rss.Channel) {
+
+}
+
+func itemsHandler(feed *rss.Feed, ch *rss.Channel, newitems []*rss.Item) {
+
+}
+
+func getRSS() {
+
+}
+
+func main() {
+	
+}
+
 
 
 
